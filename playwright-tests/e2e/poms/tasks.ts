@@ -15,15 +15,15 @@ export class TaskPage {
     this.page = page;
   }
 
-  createTaskAndVerify = async ({ taskName, userName= "Oliver Smith" }: CreateNewTaskProps) => {
+  createTaskAndVerify = async ({
+    taskName,
+    userName = "Oliver Smith",
+  }: CreateNewTaskProps) => {
     await this.page.getByTestId("navbar-add-todo-link").click();
     await this.page.getByTestId("form-title-field").fill(taskName);
 
     await this.page.locator(".css-2b097c-container").click();
-    await this.page
-      .locator(".css-26l3qy-menu")
-      .getByText(userName)
-      .click();
+    await this.page.locator(".css-26l3qy-menu").getByText(userName).click();
     await this.page.getByTestId("form-submit-button").click();
     const taskInDashboard = this.page
       .getByTestId("tasks-pending-table")
@@ -35,16 +35,24 @@ export class TaskPage {
   };
 
   markTaskAsCompletedAndVerify = async ({ taskName }: TaskName) => {
-    await this.page
-      .getByTestId("tasks-pending-table")
-      .getByRole("row", { name: taskName })
-      .getByRole("checkbox")
-      .click();
+    await expect(this.page.getByRole("heading", { name: "Loading..." })).toBeHidden();
+
     const completedTaskInDashboard = this.page
       .getByTestId("tasks-completed-table")
       .getByRole("row", { name: taskName });
-    await completedTaskInDashboard.scrollIntoViewIfNeeded();
-    await expect(completedTaskInDashboard).toBeVisible();
+
+    const isTaskCompleted = await completedTaskInDashboard.count();
+
+
+    if (isTaskCompleted) return;
+
+      await this.page
+        .getByTestId("tasks-pending-table")
+        .getByRole("row", { name: taskName })
+        .getByRole("checkbox")
+        .click();
+      await completedTaskInDashboard.scrollIntoViewIfNeeded();
+      await expect(completedTaskInDashboard).toBeVisible();
   };
 
   starTaskAndVerify = async ({ taskName }: TaskName) => {
