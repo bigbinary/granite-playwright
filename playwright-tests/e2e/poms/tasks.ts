@@ -1,4 +1,10 @@
 import { Page, expect } from "@playwright/test";
+import {
+  CREATE_TASK_SELECTORS,
+  NAVBAR_SELECTORS,
+  TASKS_TABLE_SELECTORS,
+} from "../constants/selectors";
+import { COMMON_TEXTS, DASHBOARD_TEXTS } from "../constants/texts";
 
 interface TaskName {
   taskName: string;
@@ -9,24 +15,27 @@ interface CreateNewTaskProps extends TaskName {
 }
 
 export class TaskPage {
-  page: Page;
-
-  constructor(page: Page) {
-    this.page = page;
-  }
+  constructor(private page: Page) {}
 
   createTaskAndVerify = async ({
     taskName,
-    userName = "Oliver Smith",
+    userName = COMMON_TEXTS.defaultUserName,
   }: CreateNewTaskProps) => {
-    await this.page.getByTestId("navbar-add-todo-link").click();
-    await this.page.getByTestId("form-title-field").fill(taskName);
+    await this.page.getByTestId(NAVBAR_SELECTORS.addTodoButton).click();
+    await this.page
+      .getByTestId(CREATE_TASK_SELECTORS.taskTitleField)
+      .fill(taskName);
 
-    await this.page.locator(".css-2b097c-container").click();
-    await this.page.locator(".css-26l3qy-menu").getByText(userName).click();
-    await this.page.getByTestId("form-submit-button").click();
+    await this.page
+      .locator(CREATE_TASK_SELECTORS.memberSelectContainer)
+      .click();
+    await this.page
+      .locator(CREATE_TASK_SELECTORS.memberOptionField)
+      .getByText(userName)
+      .click();
+    await this.page.getByTestId(CREATE_TASK_SELECTORS.createTaskButton).click();
     const taskInDashboard = this.page
-      .getByTestId("tasks-pending-table")
+      .getByTestId(TASKS_TABLE_SELECTORS.pendingTasksTable)
       .getByRole("row", {
         name: new RegExp(taskName, "i"),
       });
@@ -35,35 +44,39 @@ export class TaskPage {
   };
 
   markTaskAsCompletedAndVerify = async ({ taskName }: TaskName) => {
-    await expect(this.page.getByRole("heading", { name: "Loading..." })).toBeHidden();
+    await expect(
+      this.page.getByRole("heading", { name: DASHBOARD_TEXTS.loading })
+    ).toBeHidden();
 
     const completedTaskInDashboard = this.page
-      .getByTestId("tasks-completed-table")
+      .getByTestId(TASKS_TABLE_SELECTORS.completedTasksTable)
       .getByRole("row", { name: taskName });
 
     const isTaskCompleted = await completedTaskInDashboard.count();
 
-
     if (isTaskCompleted) return;
 
-      await this.page
-        .getByTestId("tasks-pending-table")
-        .getByRole("row", { name: taskName })
-        .getByRole("checkbox")
-        .click();
-      await completedTaskInDashboard.scrollIntoViewIfNeeded();
-      await expect(completedTaskInDashboard).toBeVisible();
+    await this.page
+      .getByTestId(TASKS_TABLE_SELECTORS.pendingTasksTable)
+      .getByRole("row", { name: taskName })
+      .getByRole("checkbox")
+      .click();
+    await completedTaskInDashboard.scrollIntoViewIfNeeded();
+    await expect(completedTaskInDashboard).toBeVisible();
   };
 
   starTaskAndVerify = async ({ taskName }: TaskName) => {
     const starIcon = this.page
-      .getByTestId("tasks-pending-table")
+      .getByTestId(TASKS_TABLE_SELECTORS.pendingTasksTable)
       .getByRole("row", { name: taskName })
-      .getByTestId("pending-task-star-or-unstar-link");
+      .getByTestId(TASKS_TABLE_SELECTORS.starUnstarButton);
     await starIcon.click();
-    await expect(starIcon).toHaveClass(/ri-star-fill/i);
+    await expect(starIcon).toHaveClass(DASHBOARD_TEXTS.starredTaskClass);
     await expect(
-      this.page.getByTestId("tasks-pending-table").getByRole("row").nth(1)
+      this.page
+        .getByTestId(TASKS_TABLE_SELECTORS.pendingTasksTable)
+        .getByRole("row")
+        .nth(1) // Using nth methods here since we want to verify the first row of the table
     ).toContainText(taskName);
   };
 }
